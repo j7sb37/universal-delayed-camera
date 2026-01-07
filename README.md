@@ -1,6 +1,8 @@
-**Delayed Camera – A Digital Mirror for Sports Analysis**_
+## Delayed Camera – A Digital Mirror for Sports Analysis
 
 Delayed Camera works like a digital mirror: it displays the camera feed with a delay, allowing you to review your performance immediately after the action. This makes it an excellent tool for analyzing sports techniques and movements.
+
+You can use the application directly via this link: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
 
 **1. Delayed Preview**
 
@@ -21,17 +23,12 @@ Example: If you want to analyze a Judo throwing sequence, you can start the reco
 - Timestamp: Continuous date and time display on screen
 - WebM Recording: Videos are saved directly to your computer in WebM format
 
-**How to Use**
 
-You can use the application directly via this link: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
-
-
-
-
-**Viivästetty kamera – Digitaalinen peili urheiluanalyysiin**
-
+## Viivästetty kamera – Digitaalinen peili urheiluanalyysiin
 
 Viivästetty kamera toimii kuin digitaalinen peili: se näyttää kameran syötteen viiveellä, jolloin voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
+
+Voit käyttää sovellusta suoraan tämän linkin kautta: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
 
 **1. Viivästetty esikatselu**
 
@@ -52,8 +49,3 @@ Esimerkki: Jos haluat analysoida judon heittosekvenssiä, voit aloittaa tallennu
 - FPS-valinta: 30 tai 60 FPS
 - Aikaleima: Jatkuva päivämäärän ja kellonajan näyttö näytöllä
 - WebM-tallennus: Videot tallennetaan suoraan tietokoneellesi WebM-muodossa
-
-
-**Käyttö**
-
-Voit käyttää sovellusta suoraan tämän linkin kautta: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
