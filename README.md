@@ -1,4 +1,4 @@
-**Delayed Camera – A Digital Mirror for Sports Analysis**
+**Delayed Camera – A Digital Mirror for Sports Analysis**_
 
 Delayed Camera works like a digital mirror: it displays the camera feed with a delay, allowing you to review your performance immediately after the action. This makes it an excellent tool for analyzing sports techniques and movements.
 
@@ -27,7 +27,9 @@ You can use the application directly via this link: [Delayed Camera](https://j7s
 
 
 
+
 **Viivästetty kamera – Digitaalinen peili urheiluanalyysiin**
+
 
 Viivästetty kamera toimii kuin digitaalinen peili: se näyttää kameran syötteen viiveellä, jolloin voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
 
