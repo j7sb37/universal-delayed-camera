@@ -1,0 +1,417 @@
+<!--
+  Universal Delayed Camera
+  Author: Sami M
+  Assistance: Powered by ChatGPT (OpenAI)
+-->
+
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<title>Universal Delayed Camera</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    background: black;
+    font-family: sans-serif;
+    overflow: hidden;
+  }
+
+  #canvas {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 60px); /* tilaa valikolle */
+    object-fit: contain; /* säilyttää kuvasuhteen */
+    background: black;
+  }
+
+  .controls {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    font-size: 14px;
+    padding: 5px 0;
+    box-sizing: border-box;
+    z-index: 100;
+    position: relative;
+  }
+
+  .controls input, .controls select {
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #666;
+    background: #222;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  .controls button {
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    text-transform: uppercase;
+  }
+
+  #startBtn { background: #4CAF50; color: white; }
+  #saveBtn { background: #f44336; color: white; }
+  #stopBtn { background: #FF5722; color: white; }
+  #fullscreenBtn { background: #2196F3; color: white; }
+  .controls button:hover { opacity: 0.8; }
+
+  #status {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-family: monospace;
+    font-size: 16px;
+    color: #00ff00;
+    background: rgba(0,0,0,0.6);
+    padding: 8px 12px;
+    border-radius: 6px;
+    z-index: 10;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  Viive(s): <input type="number" id="delay" value="5" min="1" max="15" style="width: 40px;">
+  Tallennus(s): <input type="number" id="recordLength" value="10" min="1" style="width: 40px;">
+  Aloitus(s): <input type="number" id="startBefore" value="-5" min="-15" max="0" style="width: 40px;">
+  
+  <select id="cameraRes">
+    <option value="640x480">480p</option>
+    <option value="1280x720" selected>720p</option>
+    <option value="1920x1080">1080p</option>
+    <option value="2560x1440">2K</option>
+    <option value="3840x2160">4K</option>
+  </select>
+  
+  <select id="fpsSelect">
+    <option value="30" selected>30 FPS</option>
+    <option value="60">60 FPS</option>
+  </select>
+  
+  <select id="cameraSelect" style="max-width: 150px;">
+    <option value="default">Etsitään kameroita...</option>
+  </select>
+  
+  <button id="startBtn">Start</button>
+  <button id="saveBtn">Save</button>
+  <button id="stopBtn">Stop</button>
+  <button id="fullscreenBtn">Full</button>
+</div>
+
+<canvas id="canvas"></canvas>
+<div id="status">Käynnistä sovellus...</div>
+<video id="video" autoplay playsinline style="display:none;"></video>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha:false });
+const statusDiv = document.getElementById('status');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const cameraSelect = document.getElementById('cameraSelect');
+
+let frameBuffer=[];
+let mediaStream=null;
+let fps=30;
+let isRunning=false;
+let lastFrameTime = 0;
+
+function getParams(){
+  return {
+    delay: parseFloat(document.getElementById('delay').value)||5,
+    recordLength: parseFloat(document.getElementById('recordLength').value)||10,
+    startBefore: parseFloat(document.getElementById('startBefore').value)||-5,
+    res: document.getElementById('cameraRes').value.split('x').map(Number),
+    fps: parseInt(document.getElementById('fpsSelect').value)
+  };
+}
+
+// 1. Alustus: Pyydetään lupa ja haetaan kamerat
+async function initCameras() {
+  statusDiv.innerText = "Haetaan kameroita...";
+  try {
+    // Pyydetään lupa hetkellisesti, jotta saadaan kameroiden nimet (Labels)
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    // Pysäytetään heti, koska emme tarvitse kuvaa vielä, vain luvat
+    stream.getTracks().forEach(track => track.stop());
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+    cameraSelect.innerHTML = ''; // Tyhjennä lista
+    
+    if (videoDevices.length === 0) {
+        const option = document.createElement('option');
+        option.text = "Ei kameroita";
+        cameraSelect.add(option);
+        return;
+    }
+
+    videoDevices.forEach((device, index) => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || `Kamera ${index + 1}`;
+      cameraSelect.appendChild(option);
+    });
+
+    statusDiv.innerText = "Kamerat löydetty. Valmis.";
+
+  } catch (err) {
+    console.error("Lupaa ei saatu tai kameroita ei ole:", err);
+    statusDiv.innerText = "Salli kameran käyttö selaimesta.";
+    cameraSelect.innerHTML = '<option value="default">Ei lupaa / Kameraa</option>';
+  }
+}
+
+// 2. Käynnistys
+document.getElementById('startBtn').onclick = async () => {
+  const params = getParams();
+  fps = params.fps;
+  const cameraId = cameraSelect.value;
+  
+  statusDiv.innerText = "Käynnistetään...";
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop());
+  }
+
+  // Määritellään asetukset
+  const constraints = {
+    video: {
+      width: { ideal: params.res[0] },
+      height: { ideal: params.res[1] },
+      frameRate: { ideal: fps }
+    }
+  };
+
+  // Jos käyttäjä on valinnut tietyn kameran (eikä se ole 'default' tai virheteksti)
+  if (cameraId && cameraId !== 'default' && cameraId.length > 5) {
+      constraints.video.deviceId = { exact: cameraId };
+  }
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+    startVideoProcessing(params.res[0], params.res[1]);
+  } catch (err) {
+    console.warn("Valitut asetukset epäonnistuivat, yritetään oletuksilla...", err);
+    try {
+        // Fallback: Jos tarkat asetukset (esim 4K) epäonnistuvat, yritä pelkkää videota
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        startVideoProcessing(params.res[0], params.res[1]);
+        statusDiv.innerText = "Kamera (Fallback-tila)";
+    } catch (err2) {
+        statusDiv.innerText = "Virhe: Kameraa ei saada auki.";
+        alert("Kameraa ei voitu käynnistää: " + err2.message);
+    }
+  }
+};
+
+function startVideoProcessing(targetW, targetH) {
+  video.srcObject = mediaStream;
+
+  video.onloadedmetadata = () => {
+    // Asetetaan canvas oikeaan kokoon
+    canvas.width = video.videoWidth; 
+    canvas.height = video.videoHeight;
+    
+    frameBuffer = [];
+    isRunning = true;
+    statusDiv.innerText = `Live: ${video.videoWidth}x${video.videoHeight} @ ${fps}FPS`;
+    requestAnimationFrame(processVideo);
+  };
+}
+
+function processVideo(timestamp) {
+  if (!isRunning) return;
+  
+  const frameDuration = 1000 / fps;
+  const elapsed = timestamp - lastFrameTime;
+
+  if (elapsed >= frameDuration) {
+    lastFrameTime = timestamp - (elapsed % frameDuration);
+    
+    if (video.readyState >= 2) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tCtx = tempCanvas.getContext('2d', { alpha: false });
+      tCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      frameBuffer.push(tempCanvas);
+
+      const params = getParams();
+      // Puskurin koko: viive + menneisyys + turvamarginaali
+      const maxBuffer = fps * (params.delay + Math.abs(params.startBefore) + 10);
+      if (frameBuffer.length > maxBuffer) frameBuffer.shift();
+
+      const delayFrames = Math.floor(fps * params.delay);
+      
+      if (frameBuffer.length >= delayFrames) {
+        const frameToShow = frameBuffer[frameBuffer.length - delayFrames];
+        ctx.drawImage(frameToShow, 0, 0, canvas.width, canvas.height);
+        drawClock(ctx);
+      } else {
+        const progress = Math.round((frameBuffer.length / delayFrames) * 100);
+        statusDiv.innerText = `Puskuroidaan viivettä... ${progress}%`;
+      }
+    }
+  }
+  requestAnimationFrame(processVideo);
+}
+
+function drawClock(c){
+  const now = new Date();
+
+  const dd   = String(now.getDate()).padStart(2,'0');
+  const mm   = String(now.getMonth() + 1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const hh   = String(now.getHours()).padStart(2,'0');
+  const min  = String(now.getMinutes()).padStart(2,'0');
+  const ss   = String(now.getSeconds()).padStart(2,'0');
+
+  // Kymmenesosat (0–9): millisekunnit (0–999) -> floor(ms/100)
+  const t = Math.floor(now.getMilliseconds() / 100); // 0..9
+
+  const timeStr = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss}.${t}`;
+
+  // Tyylit
+  c.font = '20px monospace';
+  c.textBaseline = 'alphabetic';
+
+  // Lasketaan taustan koko tekstin mittojen mukaan
+  const paddingX = 8;
+  const paddingY = 6;
+  const metrics = c.measureText(timeStr);
+  const textHeight = 20; // vastaa fontin px-kokoa; vaihtoehtoisesti voi arvioida metrics.acualBoundingBox-asetuksilla jos saatavilla
+  const boxWidth = Math.ceil(metrics.width) + paddingX * 2;
+  const boxHeight = textHeight + paddingY * 2;
+
+  const x = 10;
+  const y = canvas.height - 10; // tekstin baseline
+
+  // Tausta
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(x - paddingX, y - textHeight - paddingY, boxWidth, boxHeight);
+
+  // Teksti
+  c.fillStyle = '#00ff00';
+  c.fillText(timeStr, x, y);
+}
+
+
+
+document.getElementById('saveBtn').onclick = () => {
+  const params = getParams();
+  const currentFPS = fps;
+  
+  // Lasketaan indeksit suhteessa näytöllä näkyvään kuvaan (viivästettyyn kuvaan)
+  const visibleIdx = frameBuffer.length - Math.floor(currentFPS * params.delay);
+  const startIndex = visibleIdx + Math.floor(currentFPS * params.startBefore);
+  const totalFrames = Math.floor(currentFPS * params.recordLength);
+
+  if (startIndex < 0) {
+    alert("Odota hetki, puskurissa ei ole vielä tarpeeksi historiaa tallennukseen!");
+    return;
+  }
+
+  statusDiv.innerText = "Valmistellaan tallennusta...";
+
+  const recordCanvas = document.createElement('canvas');
+  recordCanvas.width = canvas.width;
+  recordCanvas.height = canvas.height;
+  const rCtx = recordCanvas.getContext('2d', { alpha: false });
+
+  // Tärkeää: captureStream(fps) pitää videon nopeuden oikeana
+  const stream = recordCanvas.captureStream(currentFPS);
+  const recorder = new MediaRecorder(stream, {
+    mimeType: 'video/webm; codecs=vp8',
+    videoBitsPerSecond: 8000000 // 8 Mbps laatu
+  });
+
+  const chunks = [];
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+
+    // Päivitetään tiedostonimi niin, että se sisältää päivämäärän ja ajan
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    const fileName = `delayed_video_${formattedDate}_${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.webm`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    statusDiv.innerText = "Video tallennettu!";
+  };
+
+  recorder.start();
+
+  let framesProcessed = 0;
+  
+  // Tallennus silmukka
+  const recordInterval = setInterval(() => {
+    const idx = startIndex + framesProcessed;
+
+    if (framesProcessed >= totalFrames || idx >= frameBuffer.length) {
+        clearInterval(recordInterval);
+        recorder.stop();
+        return;
+    }
+
+    const f = frameBuffer[idx];
+    if (f) {
+        rCtx.drawImage(f, 0, 0);
+        drawClock(rCtx);
+    }
+    
+    framesProcessed++;
+    if(framesProcessed % 10 === 0) {
+        statusDiv.innerText = `Tallennetaan: ${Math.round((framesProcessed/totalFrames)*100)}%`;
+    }
+  }, 1000 / currentFPS);
+};
+
+document.getElementById('stopBtn').onclick = () => {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop());
+    statusDiv.innerText = "Kamera pysäytetty";
+    isRunning = false;
+  }
+};
+
+fullscreenBtn.onclick = () => {
+  if (!document.fullscreenElement) {
+    canvas.requestFullscreen().catch(err => alert(`Fullscreen error: ${err.message}`));
+  } else {
+    document.exitFullscreen();
+  }
+};
+
+// Käynnistä kamerahaku heti sivun latautuessa
+initCameras();
+
+</script>
+</body>
+</html>
