@@ -1,6 +1,6 @@
 ## Viivästetty peili – Digitaalinen peili urheiluanalyysiin
 
-Näyttää kameran syötteen viiveellä, jolloin voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
+Näyttää kameran syötteen viiveellä. Voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
 
 Voit käyttää sovellusta suoraan tämän linkin kautta: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
 
