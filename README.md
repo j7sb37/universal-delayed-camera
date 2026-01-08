@@ -1,22 +1,22 @@
-## Viivästetty peili – Digitaalinen peili urheiluanalyysiin
+# Viivästetty peili – Digitaalinen peili urheiluanalyysiin
 
-Näyttää kameran syötteen viiveellä. Voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
+Viivästetty peili näyttää kameran kuvan asetetulla viiveellä, jolloin voit tarkastella suoritustasi heti sen jälkeen. Sovellus soveltuu erinomaisesti erityisesti urheilulajien liiketekniikoiden analysointiin ja itsearviointiin.
 
-Voit käyttää sovellusta suoraan tämän linkin kautta: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
+Voit käyttää sovellusta suoraan tästä linkistä: [Delayed Camera](https://j7sb37.github.io/universal-delayed-camera/)
 
-**1. Viivästetty esikatselu**
+### 1. Viivästetty esikatselu
 
-Sovellus ei näytä kuvaa reaaliajassa, vaan asetetun viiveen (esim. 5 sekunnin) kuluttua. Näin voit suorittaa liikkeen, kääntyä näyttöä kohti ja nähdä toimintasi täsmälleen sellaisena kuin se tapahtui.
+Sovellus ei näytä kuvaa reaaliajassa, vaan vasta määritellyn viiveen (esimerkiksi 5 sekuntia) jälkeen. Näin voit suorittaa liikkeen, kääntyä näytön puoleen ja nähdä suorituksesi täsmälleen sellaisena kuin se tapahtui.
 
-Esimerkki: Judossa voit suorittaa heiton ja tarkistaa heti näytöltä, olivatko otteesi ja tasapainosi oikeat.
+**Esimerkki:** Judossa voit tehdä heiton ja tarkistaa heti näytöltä, olivatko otteet, ajoitus ja tasapaino kohdallaan.
 
-**2. Älykäs tallennus**
+### 2. Älykäs tallennus
 
-Sovellus tallentaa videon takautuvasti. Voit määrittää tallennuksen alkamaan esimerkiksi 5 sekuntia ennen näytöllä näkyvää hetkeä. Tämä varmistaa, että koko suorituksesi tallentuu, vaikka painaisit tallennuspainiketta vasta nähtyäsi tuloksen viivästetyssä näkymässä.
+Sovellus mahdollistaa takautuvan tallennuksen. Voit asettaa tallennuksen alkamaan esimerkiksi 5 sekuntia ennen näytöllä näkyvää hetkeä. Näin koko suoritus tallentuu varmasti, vaikka painaisit tallennuspainiketta vasta nähtyäsi tuloksen viivästetyssä näkymässä.
 
-**3. Tekniset ominaisuudet**
+### 3. Tekniset ominaisuudet
 
-- Säädettävä resoluutio: 480p - 4K
-- FPS-valinta: 30 tai 60 FPS
-- Aikaleima: Jatkuva päivämäärän ja kellonajan näyttö näytöllä
-- WebM-tallennus: Videot tallennetaan WebM-muodossa
+- Säädettävä resoluutio: 480p–4K
+- Kuvataajuus: 30 tai 60 FPS
+- Aikaleima: jatkuva päivämäärän ja kellonajan näyttö videossa
+- Tallennusmuoto: WebM
