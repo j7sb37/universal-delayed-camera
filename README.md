@@ -1,4 +1,4 @@
-## Viivästetty kamera – Digitaalinen peili urheiluanalyysiin
+## Viivästetty peili – Digitaalinen peili urheiluanalyysiin
 
 Viivästetty kamera toimii kuin viivästetty peili: se näyttää kameran syötteen viiveellä, jolloin voit tarkastella suoritustasi välittömästi toiminnan jälkeen. Tämä tekee siitä erinomaisen työkalun urheilutekniikoiden ja -liikkeiden analysointiin.
 
