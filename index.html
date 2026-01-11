@@ -10,42 +10,119 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Universal Delayed Camera - Final Pro</title>
+
 <style>
-  body, html {
+body, html {
   margin: 0;
   padding: 0;
   background: black;
   font-family: sans-serif;
   overflow: hidden;
-
-  /* YHTEENSOPIVA KAIKILLA LAITTEILLA */
   height: 100%;
   min-height: 100vh;
-
   display: flex;
   flex-direction: column;
-  }
-  #canvas { display: block; width: 100vw; flex-grow: 1; object-fit: contain; background: #000; }
-  .controls { width: 100%; min-height: 80px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; background: #222; color: white; font-size: 11px; padding: 5px; box-sizing: border-box; border-bottom: 1px solid #444; z-index: 20; }
-  .controls input, .controls select { padding: 4px; border-radius: 4px; border: 1px solid #444; background: #333; color: white; }
-  .controls {
-  flex-shrink: 0;
-  }
-  button { padding: 8px 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 10px; }
-  #startBtn { background: #4CAF50; color: white; }
-  #saveBtn { background: #f44336; color: white; }
-  #stopBtn { background: #555; color: white; }
-  #fullBtn { background: #2196F3; color: white; }
-  #status { position: absolute; top: 90px; left: 10px; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 4px; pointer-events: none; z-index: 10; }
-  #info { position: absolute; top: 90px; right: 10px; font-family: monospace; color: white; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; z-index: 10; }
+}
+
+#canvas {
+  display: block;
+  width: 100vw;
+  flex-grow: 1;
+  object-fit: contain;
+  background: #000;
+}
+
+.controls {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #222;
+  color: white;
+  font-size: 11px;
+  padding: 5px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #444;
+  z-index: 20;
+}
+
+.controls input,
+.controls select {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #333;
+  color: white;
+}
+
+.controls { flex-shrink: 0; }
+
+button {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+#stopBtn { background: #4CAF50; color: white; }
+#saveBtn { background: #f44336; color: white; }
+#fullBtn { background: #2196F3; color: white; }
+
+#status {
+  position: absolute;
+  top: 90px;
+  left: 10px;
+  font-family: monospace;
+  color: #00ff00;
+  background: rgba(0,0,0,0.7);
+  padding: 5px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#info {
+  position: absolute;
+  top: 90px;
+  right: 10px;
+  font-family: monospace;
+  color: white;
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
+  border-radius: 4px;
+  z-index: 10;
+}
+
+/* pieni reaaliaikainen esikatselu */
+#miniPreview {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  width: 160px;
+  height: 90px;
+  border: 2px solid #0f0;
+  border-radius: 6px;
+  background: black;
+  object-fit: cover;
+  z-index: 30;
+  opacity: 0.9;
+  pointer-events: none;
+}
 </style>
 </head>
+
 <body>
 
 <div class="controls">
-  <span>Viive: <input type="number" id="delay" value="5" style="width: 35px;">s</span>
-  <span>Kesto: <input type="number" id="recordLength" value="15" style="width: 35px;">s</span>
-  <span>Alku: <input type="number" id="startBefore" value="-15" style="width: 35px;">s</span>
+  <span>Viive: <input type="number" id="delay" value="5" style="width:35px;">s</span>
+  <span>Kesto: <input type="number" id="recordLength" value="10" style="width:35px;">s</span>
+  <span>Alku: <input type="number" id="startBefore" value="-10" style="width:35px;">s</span>
 
   <select id="cameraRes">
     <option value="640x480">640x480</option>
@@ -58,28 +135,50 @@
     <option value="60">60 FPS</option>
   </select>
 
-  <select id="cameraSelect" style="max-width: 100px;"></select>
-
-  <button id="startBtn">Start</button>
+  <select id="cameraSelect" style="max-width:100px;"></select>
+  <button id="stopBtn">Start</button>
   <button id="saveBtn">Save</button>
-  <button id="stopBtn">Stop</button>
-  <button id="fullBtn">Full</button>
+  <button id="fullBtn">Full screen</button>
 </div>
 
 <div id="info">Res: - | measuredFPS: -</div>
 <div id="status">Paina Start</div>
+<progress id="waitProgress" value="0" max="1" style="width:220px; display:none;"></progress>
 
 <canvas id="canvas"></canvas>
-<video id="video" autoplay playsinline muted style="position:fixed; top:-100px; left:-100px; width:640px; height:480px; opacity:0; pointer-events:none;"></video>
+
+<!-- piilotettu päävideo -->
+<video id="video" autoplay playsinline muted
+  style="position:fixed; top:-100px; left:-100px; width:640px; height:480px; opacity:0;"></video>
+
+<!-- reaaliaikainen miniPreview -->
+<video id="miniPreview" autoplay playsinline muted></video>
 
 <script>
+/* ===== DOM-viittaukset ===== */
 const video = document.getElementById('video');
+const miniPreview = document.getElementById('miniPreview');
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d', { alpha:false });
 const statusDiv = document.getElementById('status');
 const infoDiv = document.getElementById('info');
 const cameraSelect = document.getElementById('cameraSelect');
 
+const delayInput = document.getElementById('delay');
+const startBeforeInput = document.getElementById('startBefore');
+const recordLengthInput = document.getElementById('recordLength');
+
+/* ===== OPTIMOINTI: parempi skaalauslaatu ===== */
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
+
+/* ===== OPTIMOINTI: canvas-context-asetukset ===== */
+const frameCtxOptions = {
+  alpha: false,
+  desynchronized: true
+};
+
+/* ===== Tilamuuttujat ===== */
 let frameBuffer = [];
 let isRunning = false;
 let mediaStream = null;
@@ -88,20 +187,22 @@ let currentMeasuredFPS = 0;
 let lastTick = 0;
 let frameCount = 0;
 let lastFpsUpdate = 0;
+let cameraOn = false;
 
+/* ===== Kamera-alustus ===== */
 async function init() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     const devices = await navigator.mediaDevices.enumerateDevices();
-    cameraSelect.innerHTML = devices.filter(d => d.kind === 'videoinput').map((d, i) =>
-      `<option value="${d.deviceId}">${d.label || 'Kamera ' + (i + 1)}</option>`
+    cameraSelect.innerHTML = devices.filter(d => d.kind === 'videoinput').map((d, i) => 
+      `<option value="${d.deviceId}">${d.label || 'Kamera '+(i+1)}</option>`
     ).join('');
     stream.getTracks().forEach(t => t.stop());
-  } catch {
-    statusDiv.innerText = "Salli kamera.";
-  }
+  } catch (err) { statusDiv.innerText = "Salli kamera."; }
 }
 
+
+/* ===== Pääsilmukka ===== */
 function startMainLoop() {
   if (isRunning) return;
   if (video.videoWidth > 0) {
@@ -110,46 +211,26 @@ function startMainLoop() {
     frameBuffer = [];
     isRunning = true;
     lastTick = performance.now();
-    statusDiv.innerText = "Käynnissä.";
     requestAnimationFrame(mainLoop);
   } else {
     setTimeout(startMainLoop, 100);
   }
 }
 
-document.getElementById('startBtn').onclick = async () => {
-  isRunning = false;
-  if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-  targetFPS = parseInt(document.getElementById('fpsSelect').value);
-  const res = document.getElementById('cameraRes').value.split('x').map(Number);
-  statusDiv.innerText = "Käynnistetään...";
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-        width: { ideal: res[0] },
-        height: { ideal: res[1] },
-        frameRate: { ideal: targetFPS }
-      }
-    });
-    video.srcObject = mediaStream;
-    video.play();
-    video.onplaying = () => startMainLoop();
-    setTimeout(startMainLoop, 1000);
-  } catch (e) {
-    statusDiv.innerText = "Virhe: " + e.message;
-  }
-};
-
 function mainLoop(now) {
   if (!isRunning) return;
+
   const interval = 1000 / targetFPS;
   if (now - lastTick >= interval) {
     lastTick = now;
     frameCount++;
+
     if (now - lastFpsUpdate >= 1000) {
-      currentMeasuredFPS = frameCount;
-      infoDiv.innerText = `Res: ${canvas.width}x${canvas.height} | measuredFPS: ${currentMeasuredFPS}`;
+      currentMeasuredFPS = Math.round(
+        currentMeasuredFPS * 0.7 + frameCount * 0.3
+      );
+      infoDiv.innerText =
+        `Res: ${canvas.width}x${canvas.height} | measuredFPS: ${currentMeasuredFPS}`;
       frameCount = 0;
       lastFpsUpdate = now;
     }
@@ -157,14 +238,14 @@ function mainLoop(now) {
     const f = document.createElement('canvas');
     f.width = canvas.width;
     f.height = canvas.height;
-    f.getContext('2d', { alpha: false }).drawImage(video, 0, 0);
+    f.getContext('2d', frameCtxOptions).drawImage(video, 0, 0);
     frameBuffer.push(f);
 
-    const dS = Math.abs(parseFloat(document.getElementById('delay').value));
-    const aS = Math.abs(parseFloat(document.getElementById('startBefore').value));
-    const kS = parseFloat(document.getElementById('recordLength').value);
-    const maxFrames = targetFPS * (dS + aS + kS + 2);
+    const dS = Math.abs(parseFloat(delayInput.value));
+    const aS = Math.abs(parseFloat(startBeforeInput.value));
+    const kS = parseFloat(recordLengthInput.value);
 
+    const maxFrames = targetFPS * (dS + aS + kS + 2);
     while (frameBuffer.length > maxFrames) frameBuffer.shift();
 
     const displayIdx = frameBuffer.length - 1 - Math.floor(targetFPS * dS);
@@ -173,55 +254,101 @@ function mainLoop(now) {
       drawClock(ctx);
     }
   }
+
   requestAnimationFrame(mainLoop);
 }
 
+/* ===== Kellopiirto ===== */
 function drawClock(c) {
   const n = new Date();
-  const full = `${n.getDate()}.${String(n.getMonth()+1).padStart(2,'0')}.${n.getFullYear()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}.${Math.floor(n.getMilliseconds()/100)}`;
+  const t =
+    `${n.getDate()}.${String(n.getMonth()+1).padStart(2,'0')}.${n.getFullYear()} ` +
+    `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:` +
+    `${String(n.getSeconds()).padStart(2,'0')}.${Math.floor(n.getMilliseconds()/100)}`;
+
   c.font = '22px monospace';
+  const w = c.measureText(t).width;
   c.fillStyle = 'rgba(0,0,0,0.7)';
-  const tw = c.measureText(full).width;
-  c.fillRect(10, canvas.height - 40, tw + 20, 30);
+  c.fillRect(10, canvas.height-40, w+20, 30);
   c.fillStyle = '#00ff00';
-  c.fillText(full, 20, canvas.height - 18);
+  c.fillText(t, 20, canvas.height-18);
 }
 
-/* =======================
-   AINOA KORJATTU OSA
-   ======================= */
+/* ===== Kamera Start / Stop ===== */
+const stopBtn = document.getElementById('stopBtn');
+
+stopBtn.onclick = async () => {
+  if (cameraOn) {
+    isRunning = false;
+    mediaStream.getTracks().forEach(t=>t.stop());
+    mediaStream = null;
+    video.srcObject = null;
+    cameraOn = false;
+    stopBtn.innerText = "Start Camera";
+    return;
+  }
+
+  targetFPS = parseInt(document.getElementById('fpsSelect').value);
+  const [w,h] = document.getElementById('cameraRes').value.split('x').map(Number);
+
+  mediaStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+      width: { ideal: w },
+      height: { ideal: h },
+      frameRate: { ideal: targetFPS }
+    }
+  });
+
+  video.srcObject = mediaStream;
+  miniPreview.srcObject = mediaStream;
+  await video.play();
+  await miniPreview.play();
+
+  cameraOn = true;
+  stopBtn.innerText = "Stop Camera";
+  startMainLoop();
+};
+
 document.getElementById('saveBtn').onclick = async () => {
   if (frameBuffer.length < 10) return;
   statusDiv.innerText = "Tallennetaan...";
 
   const saveFPS = currentMeasuredFPS > 5 ? currentMeasuredFPS : targetFPS;
+  const delay = parseFloat(delayInput.value);
+  const startBefore = parseFloat(startBeforeInput.value);
+  const recordLength = parseFloat(recordLengthInput.value);
 
-  const delay = parseFloat(document.getElementById('delay').value);
-  const startBefore = parseFloat(document.getElementById('startBefore').value);
-  const recordLength = parseFloat(document.getElementById('recordLength').value);
+  let startIdx, endIdxTarget, framesNeeded;
 
-  // Nykyhetken (näytöllä oleva) frame
-  const displayIdx = frameBuffer.length - 1 - Math.round(delay * saveFPS);
+  while (true) {
+    const displayIdx =
+      frameBuffer.length - 1 - Math.round(delay * saveFPS);
 
-  // Tallennuksen aloitus MENNEISYYDESSÄ
-  const startIdx =
-    displayIdx - Math.round((-startBefore) * saveFPS);
+    startIdx =
+      displayIdx - Math.round((-startBefore) * saveFPS);
 
-  const framesNeeded = Math.round(recordLength * saveFPS);
-  const endIdxTarget = startIdx + framesNeeded - 1;
+    framesNeeded = Math.round(recordLength * saveFPS);
+    endIdxTarget = startIdx + framesNeeded - 1;
 
-  // ODOTA kunnes tulevaisuuden framet ovat olemassa
-  while (frameBuffer.length - 1 < endIdxTarget) {
-    statusDiv.innerText = "Odotetaan tulevia frameja...";
-    await new Promise(r => setTimeout(r, 20));
+    const haveStart = startIdx >= 0;
+    const haveEnd = frameBuffer.length - 1 >= endIdxTarget;
+
+    if (haveStart && haveEnd) break;
+
+    let missingFrames = 0;
+    if (!haveStart) missingFrames = Math.abs(startIdx);
+    else if (!haveEnd) missingFrames = endIdxTarget - (frameBuffer.length - 1);
+
+    const missingSeconds = Math.max(0, missingFrames / saveFPS).toFixed(1);
+    statusDiv.innerText = `Odotetaan tallennusta... ${missingSeconds}s`;
+
+    await new Promise(r => setTimeout(r, 50));
   }
+
+  statusDiv.innerText = "Tallennus alkaa.";
 
   const framesToSave = frameBuffer.slice(startIdx, endIdxTarget + 1);
-
-  if (framesToSave.length !== framesNeeded) {
-    statusDiv.innerText = "Tallennus epäonnistui!";
-    return;
-  }
 
   const outCanvas = document.createElement('canvas');
   outCanvas.width = canvas.width;
@@ -238,14 +365,7 @@ document.getElementById('saveBtn').onclick = async () => {
   recorder.ondataavailable = e => chunks.push(e.data);
   recorder.onstop = () => {
     const d = new Date();
-    const ts =
-      `delayed-camera_${d.getFullYear()}-` +
-      `${String(d.getMonth()+1).padStart(2,'0')}-` +
-      `${String(d.getDate()).padStart(2,'0')}-` +
-      `${String(d.getHours()).padStart(2,'0')}-` +
-      `${String(d.getMinutes()).padStart(2,'0')}-` +
-      `${String(d.getSeconds()).padStart(2,'0')}`;
-
+    const ts = `delayed-camera_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}-${String(d.getSeconds()).padStart(2,'0')}`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
     a.download = `${ts}.webm`;
@@ -264,20 +384,19 @@ document.getElementById('saveBtn').onclick = async () => {
     oCtx.drawImage(framesToSave[i], 0, 0);
     drawClock(oCtx);
     i++;
-    statusDiv.innerText = `Käsittely: ${Math.round((i/framesToSave.length)*100)}%`;
+    statusDiv.innerText =
+      `Käsittely: ${Math.round((i / framesToSave.length) * 100)}%`;
   }, 1000 / saveFPS);
 };
 
-document.getElementById('stopBtn').onclick = () => {
-  isRunning = false;
-  if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-  statusDiv.innerText = "Pysäytetty.";
+document.getElementById('fullBtn').onclick = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
 };
 
-document.getElementById('fullBtn').onclick = () => {
-  if (!document.fullscreenElement) canvas.requestFullscreen();
-  else document.exitFullscreen();
-};
 
 init();
 </script>
